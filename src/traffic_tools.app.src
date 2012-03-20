@@ -1,0 +1,7 @@
+%% ex: ft=erlang
+{application, traffic_tools, [
+        {description, "Simple traffic limiting library"},
+        {vsn, "0.1.0"},
+        {registered, []},
+        {applications, [kernel, stdlib]},
+        {env, []}]}.
