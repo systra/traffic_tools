@@ -1,4 +1,4 @@
-.PHONY: doc
+.PHONY: doc test
 
 all: compile
 
@@ -8,7 +8,7 @@ compile:
 clean:
 	@rebar clean
 
-tests: compile
+test: compile
 	@rebar eunit skip_deps=true
 
 doc:

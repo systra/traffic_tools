@@ -5,8 +5,7 @@
 %% for limiting a requests flow to a user defined rate limit.
 %% Each request corresponds to one token.
 %%
-%% The rate of requests is measured over short intervals, by default the
-%% interval is set to one second.
+%% The rate of requests is measured over given interval.
 %%
 %% There is a total amount of requests allowed to pass for the flow during
 %% each interval. When all tokens allowed per interval are consumed the request
@@ -157,11 +156,13 @@ update_tokens(State) ->
 
 -ifdef(TEST).
 
+-define(TEST_PROC, test_proc).
+
 -include_lib("eunit/include/eunit.hrl").
 
 make_check(Ref, Sleep) ->
     timer:sleep(Sleep),
-    traffic_guard:check(Ref).
+    check(Ref).
 
 limit_test_() ->
     { "Verifies that the server can reject too many requests",
@@ -171,14 +172,14 @@ limit_test_() ->
             [
                 {"accept only 4 reqs on 3 req/s limit",
                     fun() ->
-                            Pid = whereis(guard_proc),
+                            Pid = whereis(?TEST_PROC),
                             ?assertMatch([ok,ok,ok,ok,reject],
                                 [make_check(Pid, 0) || _ <- lists:seq(1, 5)])
                     end
                 },
                 {"accept all 3 reqs on 3 req/s limit",
                     fun() ->
-                            Pid = whereis(guard_proc),
+                            Pid = whereis(?TEST_PROC),
                             ?assertMatch([ok,ok,ok,ok,ok],
                                 [make_check(Pid, 350) || _ <- lists:seq(1, 5)])
                     end
@@ -187,18 +188,18 @@ limit_test_() ->
         }}.
 
 setup() ->
-    {ok, Pid} = traffic_guard:start_link(guard_proc, 4, 1),
+    {ok, Pid} = start_link(?TEST_PROC, 4, 1),
     Pid.
 
 teardown(_) ->
-    case whereis(guard_proc) of
+    case whereis(?TEST_PROC) of
         undefined -> ok;
         Pid -> exit_and_wait(Pid)
     end.
 
 exit_and_wait(Pid) ->
     MRef = erlang:monitor(process, Pid),
-    traffic_guard:stop(Pid),
+    stop(Pid),
     receive
         {'DOWN', MRef, _, _, _} -> ok
     end.

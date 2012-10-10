@@ -1,6 +1,13 @@
 -module(traffic_limiter).
 -author('andrzej.trawinski@jtendo.com').
 
+%% This module is a simple leaky bucket implementation
+%% for limiting a requests flow to a user defined rate limit.
+%% Each request corresponds to one token.
+%%
+%% The rate of requests is measured over one second interval.
+%%
+
 -behaviour(gen_server).
 
 %% API
@@ -121,11 +128,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 -ifdef(TEST).
 
+-define(TEST_PROC, test_proc).
+
 -include_lib("eunit/include/eunit.hrl").
 
 make_check(Ref, Sleep) ->
     timer:sleep(Sleep),
-    traffic_limiter:check(Ref).
+    check(Ref).
 
 limit_test_() ->
     { "Verifies that the server can reject request coming too fast",
@@ -135,19 +144,19 @@ limit_test_() ->
             [
                 {"accept only first",
                     fun() ->
-                            Pid = whereis(rate_proc),
+                            Pid = whereis(?TEST_PROC),
                             ?assertMatch([ok,reject,reject,reject,reject], [make_check(Pid, 0) || _ <- lists:seq(1, 5)])
                     end
                 },
                 {"accept some",
                     fun() ->
-                            Pid = whereis(rate_proc),
+                            Pid = whereis(?TEST_PROC),
                             ?assertMatch([ok,reject,ok,reject,ok], [make_check(Pid, 100) || _ <- lists:seq(1, 5)])
                     end
                 },
                 {"accept all",
                     fun() ->
-                            Pid = whereis(rate_proc),
+                            Pid = whereis(?TEST_PROC),
                             ?assertMatch([ok,ok,ok,ok,ok], [make_check(Pid, 200) || _ <- lists:seq(1, 5)])
                     end
                 }
@@ -162,8 +171,8 @@ wait_test_() ->
             [
                 {"slow down all",
                     fun() ->
-                            Pid = whereis(rate_proc),
-                            ?_assertMatch([ok,ok,ok,ok,ok], [traffic_limiter:check(Pid) || _ <- lists:seq(1, 5)])
+                            Pid = whereis(?TEST_PROC),
+                            ?_assertMatch([ok,ok,ok,ok,ok], [check(Pid) || _ <- lists:seq(1, 5)])
                     end
                 }
             ]
@@ -176,18 +185,18 @@ setup_wait() ->
     setup(wait).
 
 setup(Type) ->
-    {ok, Pid} = traffic_limiter:start_link(rate_proc, 5, Type),
+    {ok, Pid} = start_link(?TEST_PROC, 5, Type),
     Pid.
 
 teardown(_) ->
-    case whereis(rate_proc) of
+    case whereis(?TEST_PROC) of
         undefined -> ok;
         Pid -> exit_and_wait(Pid)
     end.
 
 exit_and_wait(Pid) ->
     MRef = erlang:monitor(process, Pid),
-    traffic_limiter:stop(Pid),
+    stop(Pid),
     receive
         {'DOWN', MRef, _, _, _} -> ok
     end.
