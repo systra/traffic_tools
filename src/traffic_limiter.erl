@@ -82,7 +82,7 @@ init({Limit, Action}) ->
 %% Handling call messages
 %%--------------------------------------------------------------------
 handle_call(check, _From, State) ->
-    TS = now(),
+    TS = os:timestamp(),
     Diff = timer:now_diff(TS, State#state.latest_request),
     %io:format("Diff: ~p~n", [Diff]),
     {Reply, NewState} = case {Diff < State#state.min_interval, State#state.action} of

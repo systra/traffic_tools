@@ -86,7 +86,7 @@ init({Limit, Interval}) ->
         tokens = Limit,
         limit = Limit,
         interval = Interval,
-        last_update = erlang:now()
+        last_update = os:timestamp()
     },
     {ok, State}.
 
@@ -102,7 +102,7 @@ handle_call(check, _From, State) ->
 handle_call(reset, _From, State) ->
     NewState = State#state{
         tokens = State#state.limit,
-        last_update = erlang:now()
+        last_update = os:timestamp()
     },
     {reply, ok, NewState};
 handle_call(info, _From, State) ->
@@ -143,7 +143,7 @@ code_change(_OldVsn, State, _Extra) ->
 %
 update_tokens(State) ->
     %io:format("Current tokens: ~p~n", [State#state.tokens]),
-    TS = erlang:now(),
+    TS = os:timestamp(),
     Diff = timer:now_diff(TS, State#state.last_update),
     NewTokens = trunc((Diff * State#state.limit) / (1000000 * State#state.interval)),
     Tokens = erlang:min(State#state.limit, NewTokens + State#state.tokens),
