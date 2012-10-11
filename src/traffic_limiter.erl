@@ -60,7 +60,7 @@ start_link(Name, Limit) when is_atom(Name),
 %
 start_link(Name, Limit, Action) when is_integer(Limit), Limit > 0,
                                      is_atom(Action),
-                                     (Action == reject orelse Action == wait) ->
+                                     (Action =:= reject orelse Action =:= wait) ->
     gen_server:start_link({local, Name}, ?MODULE, {Limit, Action}, []).
 
 %%%===================================================================
